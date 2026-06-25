@@ -1,8 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   CalendarDays,
@@ -31,45 +27,32 @@ import {
   type VacationStatus,
 } from "../utils/date";
 
-type StatusFilter =
-  | "ALL"
-  | VacationStatus;
+type StatusFilter = "ALL" | VacationStatus;
 
 export function ManagerDashboardPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const [vacations, setVacations] = useState<
-    Vacation[]
-  >([]);
+  const [vacations, setVacations] = useState<Vacation[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
-  const [
-    statusFilter,
-    setStatusFilter,
-  ] = useState<StatusFilter>("ALL");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 
-  const [copied, setCopied] =
-    useState(false);
+  const [copied, setCopied] = useState(false);
 
   async function loadVacations() {
     setLoading(true);
 
     try {
-      const response =
-        await getTeamVacations();
+      const response = await getTeamVacations();
 
       setVacations(
         [...response].sort((first, second) =>
-          first.startDate.localeCompare(
-            second.startDate
-          )
-        )
+          first.startDate.localeCompare(second.startDate),
+        ),
       );
     } catch (error) {
       toast.error(getApiErrorMessage(error));
@@ -84,99 +67,69 @@ export function ManagerDashboardPage() {
 
   const employeesCount = useMemo(() => {
     const employeeIds = vacations
-      .map(
-        (vacation) =>
-          vacation.employeeId
-      )
-      .filter(
-        (employeeId): employeeId is number =>
-          employeeId !== undefined
-      );
+      .map((vacation) => vacation.employeeId)
+      .filter((employeeId): employeeId is number => employeeId !== undefined);
 
     return new Set(employeeIds).size;
   }, [vacations]);
 
-  const totalDays = useMemo(() => {
-    return vacations.reduce(
-      (total, vacation) =>
-        total + vacation.totalDays,
-      0
-    );
+  const employeesOnVacationCount = useMemo(() => {
+    const employeeIds = vacations
+      .filter(
+        (vacation) =>
+          getVacationStatus(vacation.startDate, vacation.endDate) ===
+          "IN_PROGRESS",
+      )
+      .map((vacation) => vacation.employeeId)
+      .filter((employeeId): employeeId is number => employeeId !== undefined);
+
+    return new Set(employeeIds).size;
   }, [vacations]);
 
   const nextVacation = useMemo(() => {
     return vacations.find(
       (vacation) =>
-        getVacationStatus(
-          vacation.startDate,
-          vacation.endDate
-        ) === "SCHEDULED"
+        getVacationStatus(vacation.startDate, vacation.endDate) === "SCHEDULED",
     );
   }, [vacations]);
 
   const filteredVacations = useMemo(() => {
-    const normalizedSearch = search
-      .trim()
-      .toLowerCase();
+    const normalizedSearch = search.trim().toLowerCase();
 
     return vacations.filter((vacation) => {
-      const employeeName =
-        vacation.employeeName
-          ?.toLowerCase() ?? "";
+      const employeeName = vacation.employeeName?.toLowerCase() ?? "";
 
       const matchesSearch =
         normalizedSearch.length === 0 ||
-        employeeName.includes(
-          normalizedSearch
-        );
+        employeeName.includes(normalizedSearch);
 
-      const status = getVacationStatus(
-        vacation.startDate,
-        vacation.endDate
-      );
+      const status = getVacationStatus(vacation.startDate, vacation.endDate);
 
-      const matchesStatus =
-        statusFilter === "ALL" ||
-        status === statusFilter;
+      const matchesStatus = statusFilter === "ALL" || status === statusFilter;
 
-      return (
-        matchesSearch &&
-        matchesStatus
-      );
+      return matchesSearch && matchesStatus;
     });
-  }, [
-    vacations,
-    search,
-    statusFilter,
-  ]);
+  }, [vacations, search, statusFilter]);
 
   async function copyManagerCode() {
     if (!user?.managerCode) {
-      toast.error(
-        "Código do gerente indisponível."
-      );
+      toast.error("Código do gerente indisponível.");
 
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(
-        user.managerCode
-      );
+      await navigator.clipboard.writeText(user.managerCode);
 
       setCopied(true);
 
-      toast.success(
-        "Código do gerente copiado."
-      );
+      toast.success("Código do gerente copiado.");
 
       window.setTimeout(() => {
         setCopied(false);
       }, 2000);
     } catch {
-      toast.error(
-        "Não foi possível copiar o código."
-      );
+      toast.error("Não foi possível copiar o código.");
     }
   }
 
@@ -189,18 +142,11 @@ export function ManagerDashboardPage() {
     <div className="dashboard-page">
       <header className="dashboard-header">
         <div>
-          <span className="dashboard-eyebrow">
-            Área do gerente
-          </span>
+          <span className="dashboard-eyebrow">Área do gerente</span>
 
-          <h1>
-            Olá, {user?.nome ?? "gerente"}!
-          </h1>
+          <h1>Olá, {user?.nome ?? "gerente"}!</h1>
 
-          <p>
-            Acompanhe os períodos de férias da sua
-            equipe.
-          </p>
+          <p>Acompanhe os períodos de férias da sua equipe.</p>
         </div>
 
         <button
@@ -232,13 +178,9 @@ export function ManagerDashboardPage() {
             </div>
 
             <div>
-              <span>
-                Períodos cadastrados
-              </span>
+              <span>Períodos cadastrados</span>
 
-              <strong>
-                {vacations.length}
-              </strong>
+              <strong>{vacations.length}</strong>
             </div>
           </article>
 
@@ -251,11 +193,7 @@ export function ManagerDashboardPage() {
               <span>Próximas férias</span>
 
               <strong className="stat-date">
-                {nextVacation
-                  ? formatDate(
-                      nextVacation.startDate
-                    )
-                  : "Nenhuma"}
+                {nextVacation ? formatDate(nextVacation.startDate) : "Nenhuma"}
               </strong>
             </div>
           </article>
@@ -266,8 +204,8 @@ export function ManagerDashboardPage() {
             </div>
 
             <div>
-              <span>Total de dias</span>
-              <strong>{totalDays}</strong>
+              <span>Em férias agora</span>
+              <strong>{employeesOnVacationCount}</strong>
             </div>
           </article>
         </section>
@@ -282,16 +220,12 @@ export function ManagerDashboardPage() {
             </div>
 
             <p className="manager-code-description">
-              Compartilhe este código com os
-              funcionários que devem ser vinculados
-              à sua equipe.
+              Compartilhe este código com os funcionários que devem ser
+              vinculados à sua equipe.
             </p>
 
             <div className="manager-dashboard-code">
-              <span>
-                {user?.managerCode ??
-                  "Código indisponível"}
-              </span>
+              <span>{user?.managerCode ?? "Código indisponível"}</span>
 
               <button
                 type="button"
@@ -300,9 +234,7 @@ export function ManagerDashboardPage() {
               >
                 <Copy size={18} />
 
-                {copied
-                  ? "Copiado!"
-                  : "Copiar"}
+                {copied ? "Copiado!" : "Copiar"}
               </button>
             </div>
           </article>
@@ -317,20 +249,11 @@ export function ManagerDashboardPage() {
               <button
                 type="button"
                 className="icon-dashboard-button"
-                onClick={() =>
-                  void loadVacations()
-                }
+                onClick={() => void loadVacations()}
                 disabled={loading}
                 aria-label="Atualizar férias da equipe"
               >
-                <RefreshCw
-                  size={19}
-                  className={
-                    loading
-                      ? "spinning"
-                      : ""
-                  }
-                />
+                <RefreshCw size={19} className={loading ? "spinning" : ""} />
               </button>
             </div>
 
@@ -342,38 +265,23 @@ export function ManagerDashboardPage() {
                   type="search"
                   placeholder="Buscar funcionário..."
                   value={search}
-                  onChange={(event) =>
-                    setSearch(
-                      event.target.value
-                    )
-                  }
+                  onChange={(event) => setSearch(event.target.value)}
                 />
               </div>
 
               <select
                 value={statusFilter}
                 onChange={(event) =>
-                  setStatusFilter(
-                    event.target
-                      .value as StatusFilter
-                  )
+                  setStatusFilter(event.target.value as StatusFilter)
                 }
               >
-                <option value="ALL">
-                  Todos os status
-                </option>
+                <option value="ALL">Todos os status</option>
 
-                <option value="SCHEDULED">
-                  Agendadas
-                </option>
+                <option value="SCHEDULED">Agendadas</option>
 
-                <option value="IN_PROGRESS">
-                  Em andamento
-                </option>
+                <option value="IN_PROGRESS">Em andamento</option>
 
-                <option value="COMPLETED">
-                  Concluídas
-                </option>
+                <option value="COMPLETED">Concluídas</option>
               </select>
             </div>
 
@@ -381,9 +289,7 @@ export function ManagerDashboardPage() {
               <div className="vacation-loading">
                 <div className="spinner" />
 
-                <p>
-                  Carregando férias da equipe...
-                </p>
+                <p>Carregando férias da equipe...</p>
               </div>
             ) : vacations.length === 0 ? (
               <div className="empty-state">
@@ -391,13 +297,10 @@ export function ManagerDashboardPage() {
                   <Users size={32} />
                 </div>
 
-                <h3>
-                  Nenhuma férias cadastrada
-                </h3>
+                <h3>Nenhuma férias cadastrada</h3>
 
                 <p>
-                  Os períodos cadastrados pelos
-                  funcionários aparecerão aqui.
+                  Os períodos cadastrados pelos funcionários aparecerão aqui.
                 </p>
               </div>
             ) : filteredVacations.length === 0 ? (
@@ -406,82 +309,58 @@ export function ManagerDashboardPage() {
                   <Search size={32} />
                 </div>
 
-                <h3>
-                  Nenhum resultado encontrado
-                </h3>
+                <h3>Nenhum resultado encontrado</h3>
 
-                <p>
-                  Altere a busca ou o filtro
-                  selecionado.
-                </p>
+                <p>Altere a busca ou o filtro selecionado.</p>
               </div>
             ) : (
               <>
                 <div className="manager-results-count">
                   {filteredVacations.length}{" "}
-                  {filteredVacations.length === 1
-                    ? "resultado"
-                    : "resultados"}
+                  {filteredVacations.length === 1 ? "resultado" : "resultados"}
                 </div>
 
                 <div className="team-vacation-list">
-                  {filteredVacations.map(
-                    (vacation) => {
-                      const status =
-                        getVacationStatus(
-                          vacation.startDate,
-                          vacation.endDate
-                        );
+                  {filteredVacations.map((vacation) => {
+                    const status = getVacationStatus(
+                      vacation.startDate,
+                      vacation.endDate,
+                    );
 
-                      return (
-                        <article
-                          key={vacation.id}
-                          className="team-vacation-card"
-                        >
-                          <div className="employee-avatar">
-                            {vacation.employeeName
-                              ?.charAt(0)
-                              .toUpperCase() ??
-                              "F"}
-                          </div>
+                    return (
+                      <article key={vacation.id} className="team-vacation-card">
+                        <div className="employee-avatar">
+                          {vacation.employeeName?.charAt(0).toUpperCase() ??
+                            "F"}
+                        </div>
 
-                          <div className="team-vacation-info">
-                            <strong>
-                              {vacation.employeeName ??
-                                "Funcionário"}
-                            </strong>
+                        <div className="team-vacation-info">
+                          <strong>
+                            {vacation.employeeName ?? "Funcionário"}
+                          </strong>
 
-                            <span>
-                              {formatDate(
-                                vacation.startDate
-                              )}
-                              {" até "}
-                              {formatDate(
-                                vacation.endDate
-                              )}
-                            </span>
-                          </div>
+                          <span>
+                            {formatDate(vacation.startDate)}
+                            {" até "}
+                            {formatDate(vacation.endDate)}
+                          </span>
+                        </div>
 
-                          <div className="team-vacation-meta">
-                            <span>
-                              {vacation.totalDays}{" "}
-                              {vacation.totalDays === 1
-                                ? "dia"
-                                : "dias"}
-                            </span>
+                        <div className="team-vacation-meta">
+                          <span>
+                            {vacation.totalDays}{" "}
+                            {vacation.totalDays === 1 ? "dia" : "dias"}
+                          </span>
 
-                            <span
-                              className={`vacation-status ${status.toLowerCase()}`}
-                            >
-                              {getVacationStatusLabel(
-                                status
-                              )}
-                            </span>
-                          </div>
-                        </article>
-                      );
-                    }
-                  )}
+                          <span
+                            className={`vacation-status ${status.toLowerCase()}`}
+                          >
+                            {getVacationStatusLabel(status)}
+                          </span>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               </>
             )}
