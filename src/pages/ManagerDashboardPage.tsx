@@ -16,9 +16,11 @@ import {
 } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 import { useAuth } from "../contexts/AuthContext";
 import { getTeamVacations } from "../services/managerService";
+import { getApiErrorMessage } from "../utils/apiError";
 
 import type { Vacation } from "../types";
 
@@ -44,19 +46,19 @@ export function ManagerDashboardPage() {
   const [loading, setLoading] =
     useState(true);
 
-  const [error, setError] = useState("");
+  const [search, setSearch] =
+    useState("");
 
-  const [search, setSearch] = useState("");
-
-  const [statusFilter, setStatusFilter] =
-    useState<StatusFilter>("ALL");
+  const [
+    statusFilter,
+    setStatusFilter,
+  ] = useState<StatusFilter>("ALL");
 
   const [copied, setCopied] =
     useState(false);
 
   async function loadVacations() {
     setLoading(true);
-    setError("");
 
     try {
       const response =
@@ -69,11 +71,8 @@ export function ManagerDashboardPage() {
           )
         )
       );
-    } catch (requestError: any) {
-      setError(
-        requestError.response?.data?.message ??
-          "Não foi possível carregar as férias da equipe."
-      );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -85,7 +84,10 @@ export function ManagerDashboardPage() {
 
   const employeesCount = useMemo(() => {
     const employeeIds = vacations
-      .map((vacation) => vacation.employeeId)
+      .map(
+        (vacation) =>
+          vacation.employeeId
+      )
       .filter(
         (employeeId): employeeId is number =>
           employeeId !== undefined
@@ -119,8 +121,8 @@ export function ManagerDashboardPage() {
 
     return vacations.filter((vacation) => {
       const employeeName =
-        vacation.employeeName?.toLowerCase() ??
-        "";
+        vacation.employeeName
+          ?.toLowerCase() ?? "";
 
       const matchesSearch =
         normalizedSearch.length === 0 ||
@@ -137,7 +139,10 @@ export function ManagerDashboardPage() {
         statusFilter === "ALL" ||
         status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      return (
+        matchesSearch &&
+        matchesStatus
+      );
     });
   }, [
     vacations,
@@ -147,18 +152,32 @@ export function ManagerDashboardPage() {
 
   async function copyManagerCode() {
     if (!user?.managerCode) {
+      toast.error(
+        "Código do gerente indisponível."
+      );
+
       return;
     }
 
-    await navigator.clipboard.writeText(
-      user.managerCode
-    );
+    try {
+      await navigator.clipboard.writeText(
+        user.managerCode
+      );
 
-    setCopied(true);
+      setCopied(true);
 
-    window.setTimeout(() => {
-      setCopied(false);
-    }, 2000);
+      toast.success(
+        "Código do gerente copiado."
+      );
+
+      window.setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch {
+      toast.error(
+        "Não foi possível copiar o código."
+      );
+    }
   }
 
   function handleLogout() {
@@ -185,6 +204,7 @@ export function ManagerDashboardPage() {
         </div>
 
         <button
+          type="button"
           className="secondary-dashboard-button"
           onClick={handleLogout}
         >
@@ -212,8 +232,13 @@ export function ManagerDashboardPage() {
             </div>
 
             <div>
-              <span>Períodos cadastrados</span>
-              <strong>{vacations.length}</strong>
+              <span>
+                Períodos cadastrados
+              </span>
+
+              <strong>
+                {vacations.length}
+              </strong>
             </div>
           </article>
 
@@ -290,6 +315,7 @@ export function ManagerDashboardPage() {
               </div>
 
               <button
+                type="button"
                 className="icon-dashboard-button"
                 onClick={() =>
                   void loadVacations()
@@ -300,7 +326,9 @@ export function ManagerDashboardPage() {
                 <RefreshCw
                   size={19}
                   className={
-                    loading ? "spinning" : ""
+                    loading
+                      ? "spinning"
+                      : ""
                   }
                 />
               </button>
@@ -315,7 +343,9 @@ export function ManagerDashboardPage() {
                   placeholder="Buscar funcionário..."
                   value={search}
                   onChange={(event) =>
-                    setSearch(event.target.value)
+                    setSearch(
+                      event.target.value
+                    )
                   }
                 />
               </div>
@@ -346,12 +376,6 @@ export function ManagerDashboardPage() {
                 </option>
               </select>
             </div>
-
-            {error && (
-              <div className="error-message">
-                {error}
-              </div>
-            )}
 
             {loading ? (
               <div className="vacation-loading">
@@ -467,4 +491,3 @@ export function ManagerDashboardPage() {
     </div>
   );
 }
-

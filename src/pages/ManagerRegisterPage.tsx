@@ -1,12 +1,22 @@
-import { useState, type FormEvent } from "react";
+import {
+  useState,
+  type FormEvent,
+} from "react";
+
 import { Link } from "react-router-dom";
+
 import {
   ArrowLeft,
   CalendarDays,
   CheckCircle2,
   Copy,
 } from "lucide-react";
+
+import { toast } from "sonner";
+
 import { registerManager } from "../services/managerService";
+import { getApiErrorMessage } from "../utils/apiError";
+
 import type { ManagerResponse } from "../types";
 
 export function ManagerRegisterPage() {
@@ -20,9 +30,11 @@ export function ManagerRegisterPage() {
   const [manager, setManager] =
     useState<ManagerResponse | null>(null);
 
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
+
+  const [copied, setCopied] =
+    useState(false);
 
   function updateField(
     field: keyof typeof form,
@@ -40,33 +52,48 @@ export function ManagerRegisterPage() {
     event.preventDefault();
 
     setLoading(true);
-    setError("");
 
     try {
-      const response = await registerManager(form);
+      const response = await registerManager({
+        ...form,
+        nome: form.nome.trim(),
+        email: form.email.trim(),
+      });
+
       setManager(response);
-    } catch (requestError: any) {
-      setError(
-        requestError.response?.data?.message ??
-          "Não foi possível criar a conta."
+
+      toast.success(
+        "Conta de gerente criada com sucesso."
       );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     } finally {
       setLoading(false);
     }
   }
 
   async function copyManagerCode() {
-    if (!manager) return;
+    if (!manager) {
+      return;
+    }
 
-    await navigator.clipboard.writeText(
-      manager.managerCode
-    );
+    try {
+      await navigator.clipboard.writeText(
+        manager.managerCode
+      );
 
-    setCopied(true);
+      setCopied(true);
 
-    window.setTimeout(() => {
-      setCopied(false);
-    }, 2000);
+      toast.success("Código copiado.");
+
+      window.setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch {
+      toast.error(
+        "Não foi possível copiar o código."
+      );
+    }
   }
 
   if (manager) {
@@ -81,13 +108,16 @@ export function ManagerRegisterPage() {
 
           <p>
             Guarde o código abaixo e compartilhe
-            somente com os funcionários da sua equipe.
+            somente com os funcionários da sua
+            equipe.
           </p>
 
           <div className="manager-code-box">
             <span>Código do gerente</span>
 
-            <strong>{manager.managerCode}</strong>
+            <strong>
+              {manager.managerCode}
+            </strong>
 
             <button
               type="button"
@@ -95,7 +125,10 @@ export function ManagerRegisterPage() {
               className="copy-button"
             >
               <Copy size={18} />
-              {copied ? "Copiado!" : "Copiar"}
+
+              {copied
+                ? "Copiado!"
+                : "Copiar"}
             </button>
           </div>
 
@@ -126,40 +159,57 @@ export function ManagerRegisterPage() {
           <h1>Criar conta de gerente</h1>
 
           <p>
-            Cadastre-se para acompanhar as férias da
-            sua equipe.
+            Cadastre-se para acompanhar as férias
+            da sua equipe.
           </p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="nome">Nome completo</label>
+            <label htmlFor="nome">
+              Nome completo
+            </label>
+
             <input
               id="nome"
               value={form.nome}
               onChange={(event) =>
-                updateField("nome", event.target.value)
+                updateField(
+                  "nome",
+                  event.target.value
+                )
               }
+              autoComplete="name"
               required
               minLength={3}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">E-mail</label>
+            <label htmlFor="email">
+              E-mail
+            </label>
+
             <input
               id="email"
               type="email"
               value={form.email}
               onChange={(event) =>
-                updateField("email", event.target.value)
+                updateField(
+                  "email",
+                  event.target.value
+                )
               }
+              autoComplete="email"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Senha</label>
+            <label htmlFor="password">
+              Senha
+            </label>
+
             <input
               id="password"
               type="password"
@@ -170,6 +220,7 @@ export function ManagerRegisterPage() {
                   event.target.value
                 )
               }
+              autoComplete="new-password"
               required
               minLength={6}
             />
@@ -190,16 +241,14 @@ export function ManagerRegisterPage() {
                   event.target.value
                 )
               }
-              max={new Date()
-                .toISOString()
-                .split("T")[0]}
+              max={
+                new Date()
+                  .toISOString()
+                  .split("T")[0]
+              }
               required
             />
           </div>
-
-          {error && (
-            <div className="error-message">{error}</div>
-          )}
 
           <button
             type="submit"
@@ -214,7 +263,9 @@ export function ManagerRegisterPage() {
 
         <p className="auth-footer-text">
           Já possui uma conta?{" "}
-          <Link to="/login">Entrar</Link>
+          <Link to="/login">
+            Entrar
+          </Link>
         </p>
       </div>
     </div>

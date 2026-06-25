@@ -17,7 +17,10 @@ import {
   EyeOff,
 } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { useAuth } from "../contexts/AuthContext";
+import { getApiErrorMessage } from "../utils/apiError";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -31,9 +34,7 @@ export function LoginPage() {
       }
     | null;
 
-  const query = new URLSearchParams(
-    location.search
-  );
+  const query = new URLSearchParams(location.search);
 
   const sessionExpired =
     query.get("sessionExpired") === "true";
@@ -48,7 +49,6 @@ export function LoginPage() {
   const [showPassword, setShowPassword] =
     useState(false);
 
-  const [error, setError] = useState("");
   const [loading, setLoading] =
     useState(false);
 
@@ -58,19 +58,34 @@ export function LoginPage() {
     }
   }, [state?.email]);
 
+  useEffect(() => {
+    if (state?.message) {
+      toast.success(state.message);
+    }
+  }, [state?.message]);
+
+  useEffect(() => {
+    if (sessionExpired) {
+      toast.warning(
+        "Sua sessão expirou. Entre novamente."
+      );
+    }
+  }, [sessionExpired]);
+
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
 
-    setError("");
     setLoading(true);
 
     try {
       const user = await login({
-        email,
+        email: email.trim(),
         password,
       });
+
+      toast.success("Login realizado com sucesso.");
 
       if (user.role === "MANAGER") {
         navigate("/manager", {
@@ -83,28 +98,8 @@ export function LoginPage() {
       navigate("/dashboard", {
         replace: true,
       });
-    } catch (requestError: any) {
-      if (!requestError.response) {
-        setError(
-          requestError.message ??
-            "Não foi possível conectar à API."
-        );
-
-        return;
-      }
-
-      if (
-        requestError.response.status === 401
-      ) {
-        setError("E-mail ou senha inválidos.");
-
-        return;
-      }
-
-      setError(
-        requestError.response?.data?.message ??
-          "Não foi possível realizar o login."
-      );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -131,18 +126,6 @@ export function LoginPage() {
           </p>
         </div>
 
-        {state?.message && (
-          <div className="success-message">
-            {state.message}
-          </div>
-        )}
-
-        {sessionExpired && (
-          <div className="warning-message">
-            Sua sessão expirou. Entre novamente.
-          </div>
-        )}
-
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">
@@ -157,6 +140,7 @@ export function LoginPage() {
                 setEmail(event.target.value)
               }
               placeholder="voce@email.com"
+              autoComplete="email"
               required
             />
           </div>
@@ -176,12 +160,11 @@ export function LoginPage() {
                 }
                 value={password}
                 onChange={(event) =>
-                  setPassword(
-                    event.target.value
-                  )
+                  setPassword(event.target.value)
                 }
                 placeholder="Sua senha"
                 minLength={6}
+                autoComplete="current-password"
                 required
               />
 
@@ -207,12 +190,6 @@ export function LoginPage() {
               </button>
             </div>
           </div>
-
-          {error && (
-            <div className="error-message">
-              {error}
-            </div>
-          )}
 
           <button
             type="submit"

@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
 import { useAuth } from "../contexts/AuthContext";
 
 import {
@@ -23,6 +25,8 @@ import {
   deleteVacation,
   getVacations,
 } from "../services/vacationService";
+
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 import type {
   Vacation,
@@ -35,6 +39,8 @@ import {
   getVacationStatus,
   getVacationStatusLabel,
 } from "../utils/date";
+
+import { getApiErrorMessage } from "../utils/apiError";
 
 export function EmployeeDashboardPage() {
   const navigate = useNavigate();
@@ -59,12 +65,13 @@ export function EmployeeDashboardPage() {
   const [deletingId, setDeletingId] =
     useState<number | null>(null);
 
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [
+    vacationToDelete,
+    setVacationToDelete,
+  ] = useState<Vacation | null>(null);
 
   async function loadVacations() {
     setLoading(true);
-    setError("");
 
     try {
       const response = await getVacations();
@@ -76,11 +83,8 @@ export function EmployeeDashboardPage() {
           )
         )
       );
-    } catch (requestError: any) {
-      setError(
-        requestError.response?.data?.message ??
-          "Não foi possível carregar suas férias."
-      );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -109,11 +113,16 @@ export function EmployeeDashboardPage() {
   }, [vacations]);
 
   const calculatedDays = useMemo(() => {
-    if (!form.startDate || !form.endDate) {
+    if (
+      !form.startDate ||
+      !form.endDate
+    ) {
       return 0;
     }
 
-    if (form.endDate < form.startDate) {
+    if (
+      form.endDate < form.startDate
+    ) {
       return 0;
     }
 
@@ -128,11 +137,10 @@ export function EmployeeDashboardPage() {
   ) {
     event.preventDefault();
 
-    setError("");
-    setSuccess("");
-
-    if (form.endDate < form.startDate) {
-      setError(
+    if (
+      form.endDate < form.startDate
+    ) {
+      toast.error(
         "A data final não pode ser anterior à data inicial."
       );
 
@@ -146,11 +154,13 @@ export function EmployeeDashboardPage() {
         await createVacation(form);
 
       setVacations((current) =>
-        [...current, createdVacation].sort(
-          (first, second) =>
-            first.startDate.localeCompare(
-              second.startDate
-            )
+        [
+          ...current,
+          createdVacation,
+        ].sort((first, second) =>
+          first.startDate.localeCompare(
+            second.startDate
+          )
         )
       );
 
@@ -159,49 +169,43 @@ export function EmployeeDashboardPage() {
         endDate: "",
       });
 
-      setSuccess(
+      toast.success(
         "Período de férias cadastrado com sucesso."
       );
-    } catch (requestError: any) {
-      setError(
-        requestError.response?.data?.message ??
-          "Não foi possível cadastrar as férias."
-      );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleDelete(id: number) {
-    const confirmed = window.confirm(
-      "Tem certeza de que deseja excluir este período de férias?"
-    );
-
-    if (!confirmed) {
+  async function handleDelete() {
+    if (!vacationToDelete) {
       return;
     }
 
-    setDeletingId(id);
-    setError("");
-    setSuccess("");
+    const vacationId =
+      vacationToDelete.id;
+
+    setDeletingId(vacationId);
 
     try {
-      await deleteVacation(id);
+      await deleteVacation(vacationId);
 
       setVacations((current) =>
         current.filter(
-          (vacation) => vacation.id !== id
+          (vacation) =>
+            vacation.id !== vacationId
         )
       );
 
-      setSuccess(
+      setVacationToDelete(null);
+
+      toast.success(
         "Período de férias excluído com sucesso."
       );
-    } catch (requestError: any) {
-      setError(
-        requestError.response?.data?.message ??
-          "Não foi possível excluir as férias."
-      );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     } finally {
       setDeletingId(null);
     }
@@ -231,6 +235,7 @@ export function EmployeeDashboardPage() {
         </div>
 
         <button
+          type="button"
           className="secondary-dashboard-button"
           onClick={handleLogout}
         >
@@ -247,8 +252,13 @@ export function EmployeeDashboardPage() {
             </div>
 
             <div>
-              <span>Períodos cadastrados</span>
-              <strong>{vacations.length}</strong>
+              <span>
+                Períodos cadastrados
+              </span>
+
+              <strong>
+                {vacations.length}
+              </strong>
             </div>
           </article>
 
@@ -377,6 +387,7 @@ export function EmployeeDashboardPage() {
               </div>
 
               <button
+                type="button"
                 className="icon-dashboard-button"
                 onClick={() =>
                   void loadVacations()
@@ -387,28 +398,21 @@ export function EmployeeDashboardPage() {
                 <RefreshCw
                   size={19}
                   className={
-                    loading ? "spinning" : ""
+                    loading
+                      ? "spinning"
+                      : ""
                   }
                 />
               </button>
             </div>
 
-            {error && (
-              <div className="error-message">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="success-message">
-                {success}
-              </div>
-            )}
-
             {loading ? (
               <div className="vacation-loading">
                 <div className="spinner" />
-                <p>Carregando suas férias...</p>
+
+                <p>
+                  Carregando suas férias...
+                </p>
               </div>
             ) : vacations.length === 0 ? (
               <div className="empty-state">
@@ -416,86 +420,120 @@ export function EmployeeDashboardPage() {
                   <CalendarDays size={32} />
                 </div>
 
-                <h3>Nenhuma férias cadastrada</h3>
+                <h3>
+                  Nenhuma férias cadastrada
+                </h3>
 
                 <p>
-                  Utilize o formulário ao lado para
-                  cadastrar seu primeiro período.
+                  Utilize o formulário ao lado
+                  para cadastrar seu primeiro
+                  período.
                 </p>
               </div>
             ) : (
               <div className="vacation-list">
-                {vacations.map((vacation) => {
-                  const status =
-                    getVacationStatus(
-                      vacation.startDate,
-                      vacation.endDate
-                    );
+                {vacations.map(
+                  (vacation) => {
+                    const status =
+                      getVacationStatus(
+                        vacation.startDate,
+                        vacation.endDate
+                      );
 
-                  return (
-                    <article
-                      key={vacation.id}
-                      className="vacation-card"
-                    >
-                      <div className="vacation-card-main">
-                        <div className="vacation-card-icon">
-                          <CalendarDays size={22} />
+                    return (
+                      <article
+                        key={vacation.id}
+                        className="vacation-card"
+                      >
+                        <div className="vacation-card-main">
+                          <div className="vacation-card-icon">
+                            <CalendarDays
+                              size={22}
+                            />
+                          </div>
+
+                          <div>
+                            <strong>
+                              {formatDate(
+                                vacation.startDate
+                              )}
+                              {" até "}
+                              {formatDate(
+                                vacation.endDate
+                              )}
+                            </strong>
+
+                            <span>
+                              {vacation.totalDays}{" "}
+                              {vacation.totalDays === 1
+                                ? "dia"
+                                : "dias"}
+                            </span>
+                          </div>
                         </div>
 
-                        <div>
-                          <strong>
-                            {formatDate(
-                              vacation.startDate
+                        <div className="vacation-card-actions">
+                          <span
+                            className={`vacation-status ${status.toLowerCase()}`}
+                          >
+                            {getVacationStatusLabel(
+                              status
                             )}
-                            {" até "}
-                            {formatDate(
-                              vacation.endDate
-                            )}
-                          </strong>
-
-                          <span>
-                            {vacation.totalDays}{" "}
-                            {vacation.totalDays === 1
-                              ? "dia"
-                              : "dias"}
                           </span>
-                        </div>
-                      </div>
 
-                      <div className="vacation-card-actions">
-                        <span
-                          className={`vacation-status ${status.toLowerCase()}`}
-                        >
-                          {getVacationStatusLabel(
-                            status
-                          )}
-                        </span>
-
-                        <button
-                          className="delete-button"
-                          onClick={() =>
-                            void handleDelete(
+                          <button
+                            type="button"
+                            className="delete-button"
+                            onClick={() =>
+                              setVacationToDelete(
+                                vacation
+                              )
+                            }
+                            disabled={
+                              deletingId ===
                               vacation.id
-                            )
-                          }
-                          disabled={
-                            deletingId ===
-                            vacation.id
-                          }
-                          aria-label="Excluir férias"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
+                            }
+                            aria-label="Excluir férias"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  }
+                )}
               </div>
             )}
           </article>
         </section>
       </main>
+
+      <ConfirmDialog
+        isOpen={
+          vacationToDelete !== null
+        }
+        title="Excluir período de férias?"
+        description={
+          vacationToDelete
+            ? `O período de ${formatDate(
+                vacationToDelete.startDate
+              )} até ${formatDate(
+                vacationToDelete.endDate
+              )} será excluído. Esta ação não poderá ser desfeita.`
+            : ""
+        }
+        confirmText="Excluir férias"
+        destructive
+        loading={deletingId !== null}
+        onConfirm={() =>
+          void handleDelete()
+        }
+        onCancel={() => {
+          if (deletingId === null) {
+            setVacationToDelete(null);
+          }
+        }}
+      />
     </div>
   );
 }
-

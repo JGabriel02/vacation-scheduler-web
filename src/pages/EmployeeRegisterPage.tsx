@@ -1,13 +1,22 @@
-import { useState, type FormEvent } from "react";
+import {
+  useState,
+  type FormEvent,
+} from "react";
+
 import {
   Link,
   useNavigate,
 } from "react-router-dom";
+
 import {
   ArrowLeft,
   CalendarDays,
 } from "lucide-react";
+
+import { toast } from "sonner";
+
 import { registerEmployee } from "../services/employeeService";
+import { getApiErrorMessage } from "../utils/apiError";
 
 export function EmployeeRegisterPage() {
   const navigate = useNavigate();
@@ -20,8 +29,8 @@ export function EmployeeRegisterPage() {
     managerCode: "",
   });
 
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
   function updateField(
     field: keyof typeof form,
@@ -39,28 +48,28 @@ export function EmployeeRegisterPage() {
     event.preventDefault();
 
     setLoading(true);
-    setError("");
 
     try {
       await registerEmployee({
         ...form,
+        nome: form.nome.trim(),
+        email: form.email.trim(),
         managerCode: form.managerCode
           .trim()
           .toUpperCase(),
       });
 
+      toast.success(
+        "Conta criada com sucesso. Faça seu login."
+      );
+
       navigate("/login", {
         state: {
-          message:
-            "Conta criada com sucesso. Faça seu login.",
-          email: form.email,
+          email: form.email.trim(),
         },
       });
-    } catch (requestError: any) {
-      setError(
-        requestError.response?.data?.message ??
-          "Não foi possível criar a conta."
-      );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -89,33 +98,50 @@ export function EmployeeRegisterPage() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="nome">Nome completo</label>
+            <label htmlFor="nome">
+              Nome completo
+            </label>
+
             <input
               id="nome"
               value={form.nome}
               onChange={(event) =>
-                updateField("nome", event.target.value)
+                updateField(
+                  "nome",
+                  event.target.value
+                )
               }
+              autoComplete="name"
               required
               minLength={3}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">E-mail</label>
+            <label htmlFor="email">
+              E-mail
+            </label>
+
             <input
               id="email"
               type="email"
               value={form.email}
               onChange={(event) =>
-                updateField("email", event.target.value)
+                updateField(
+                  "email",
+                  event.target.value
+                )
               }
+              autoComplete="email"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Senha</label>
+            <label htmlFor="password">
+              Senha
+            </label>
+
             <input
               id="password"
               type="password"
@@ -126,6 +152,7 @@ export function EmployeeRegisterPage() {
                   event.target.value
                 )
               }
+              autoComplete="new-password"
               required
               minLength={6}
             />
@@ -146,9 +173,11 @@ export function EmployeeRegisterPage() {
                   event.target.value
                 )
               }
-              max={new Date()
-                .toISOString()
-                .split("T")[0]}
+              max={
+                new Date()
+                  .toISOString()
+                  .split("T")[0]
+              }
               required
             />
           </div>
@@ -172,10 +201,6 @@ export function EmployeeRegisterPage() {
             />
           </div>
 
-          {error && (
-            <div className="error-message">{error}</div>
-          )}
-
           <button
             type="submit"
             className="primary-button full-button"
@@ -189,7 +214,9 @@ export function EmployeeRegisterPage() {
 
         <p className="auth-footer-text">
           Já possui uma conta?{" "}
-          <Link to="/login">Entrar</Link>
+          <Link to="/login">
+            Entrar
+          </Link>
         </p>
       </div>
     </div>

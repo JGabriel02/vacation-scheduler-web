@@ -10,9 +10,11 @@ import { ManagerRegisterPage } from "./pages/ManagerRegisterPage";
 import { EmployeeRegisterPage } from "./pages/EmployeeRegisterPage";
 import { EmployeeDashboardPage } from "./pages/EmployeeDashboardPage";
 import { ManagerDashboardPage } from "./pages/ManagerDashboardPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 
 import { EmployeeRoute } from "./components/EmployeeRoute";
 import { ManagerRoute } from "./components/ManagerRoute";
+import { PublicOnlyRoute } from "./components/PublicOnlyRoute";
 
 function App() {
   return (
@@ -20,22 +22,38 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={<HomePage />}
+          element={
+            <PublicOnlyRoute>
+              <HomePage />
+            </PublicOnlyRoute>
+          }
         />
 
         <Route
           path="/login"
-          element={<LoginPage />}
+          element={
+            <PublicOnlyRoute>
+              <LoginPage />
+            </PublicOnlyRoute>
+          }
         />
 
         <Route
           path="/register/manager"
-          element={<ManagerRegisterPage />}
+          element={
+            <PublicOnlyRoute>
+              <ManagerRegisterPage />
+            </PublicOnlyRoute>
+          }
         />
 
         <Route
           path="/register/employee"
-          element={<EmployeeRegisterPage />}
+          element={
+            <PublicOnlyRoute>
+              <EmployeeRegisterPage />
+            </PublicOnlyRoute>
+          }
         />
 
         <Route
@@ -58,19 +76,7 @@ function App() {
 
         <Route
           path="*"
-          element={
-            <div className="not-found-page">
-              <h1>404</h1>
-              <p>Página não encontrada.</p>
-
-              <a
-                href="/"
-                className="primary-button"
-              >
-                Voltar para o início
-              </a>
-            </div>
-          }
+          element={<NotFoundPage />}
         />
       </Routes>
     </BrowserRouter>
