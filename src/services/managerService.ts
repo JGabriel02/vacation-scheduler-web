@@ -1,4 +1,6 @@
+
 import api from "../api/api";
+
 import type {
   ManagerRegisterRequest,
   ManagerResponse,
@@ -25,3 +27,4 @@ export async function getTeamVacations(): Promise<
 
   return response.data;
 }
+

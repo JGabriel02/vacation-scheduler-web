@@ -27,16 +27,14 @@ api.interceptors.response.use(
   (response) => response,
 
   (error) => {
-    if (error.response?.status === 401) {
-      authStorage.clear();
+    const status = error.response?.status;
+    const requestUrl = error.config?.url;
 
-      if (
-        window.location.pathname !== "/login"
-      ) {
-        window.location.href =
-          "/login?sessionExpired=true";
-      }
-    }
+    console.error("Erro da API:", {
+      status,
+      requestUrl,
+      response: error.response?.data,
+    });
 
     return Promise.reject(error);
   }

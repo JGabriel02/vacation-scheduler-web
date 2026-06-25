@@ -1,4 +1,5 @@
 import api from "../api/api";
+
 import type {
   Vacation,
   VacationRequest,
@@ -15,11 +16,9 @@ export async function createVacation(
   return response.data;
 }
 
-export async function getVacations(): Promise<
-  Vacation[]
-> {
+export async function getVacations(): Promise<Vacation[]> {
   const response = await api.get<Vacation[]>(
-    "/vacations"
+    "/vacations/me"
   );
 
   return response.data;
